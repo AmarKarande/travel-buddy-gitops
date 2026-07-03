@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag from CI job')
+    }
+
+    environment {
+        DOCKER_IMAGE = "amarskarande/travel-buddy"
+    }
+
+    stages {
+        stage('Pull GitOps Repo') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Update Image Tag') {
+            steps {
+                sh """
+                    yq e -i '.spec.template.spec.containers[0].image = "${DOCKER_IMAGE}:${params.IMAGE_TAG}"' deployment.yaml
+                """
+            }
+        }
+
+        stage('Commit and Push') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                    sh """
+                        git config user.email "jenkins-cd@travel-buddy.com"
+                        git config user.name "jenkins-cd"
+                        git add deployment.yaml
+                        git commit -m "Deploy image ${DOCKER_IMAGE}:${params.IMAGE_TAG}" || echo "No changes to commit"
+                        git push https://\$GIT_USER:\$GIT_TOKEN@github.com/yourname/travel-buddy-gitops.git HEAD:main
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo 'CD Pipeline failed — check the failing stage above.'
+        }
+        success {
+            echo "Successfully updated deployment.yaml to image tag: ${params.IMAGE_TAG}"
+        }
+    }
+}
