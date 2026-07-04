@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: travel-buddy
-          image: amarskarande/travel-buddy:18
+          image: amarskarande/travel-buddy:20
           ports:
             - containerPort: 80
           resources:
