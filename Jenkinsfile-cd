@@ -32,7 +32,7 @@ pipeline {
                         git config user.name "jenkins-cd"
                         git add deployment.yaml
                         git commit -m "Deploy image ${DOCKER_IMAGE}:${params.IMAGE_TAG}" || echo "No changes to commit"
-                        git push https://\$GIT_USER:\$GIT_TOKEN@github.com/yourname/travel-buddy-gitops.git HEAD:main
+                        git push https://\$GIT_USER:\$GIT_TOKEN@github.com/AmarKarande/travel-buddy-gitops.git HEAD:main
                     """
                 }
             }
