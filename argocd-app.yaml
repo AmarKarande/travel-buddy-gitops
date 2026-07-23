@@ -3,18 +3,23 @@ kind: Application
 metadata:
   name: travel-buddy
   namespace: argocd
+
 spec:
   project: default
+
   source:
     repoURL: https://github.com/AmarKarande/travel-buddy-gitops.git
     targetRevision: main
     path: .
+
   destination:
     server: https://kubernetes.default.svc
     namespace: default
+
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+
     syncOptions:
       - CreateNamespace=true
