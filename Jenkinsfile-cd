@@ -2,49 +2,126 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag from CI job')
+        string(
+            name: 'IMAGE_TAG',
+            defaultValue: 'latest',
+            description: 'Docker image tag from CI pipeline'
+        )
     }
 
     environment {
         DOCKER_IMAGE = "amarskarande/travel-buddy"
     }
 
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
     stages {
-        stage('Pull GitOps Repo') {
+
+        stage('Checkout GitOps Repository') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Verify Current Deployment') {
+            steps {
+                sh '''
+                echo "Current deployment.yaml"
+                cat deployment.yaml
+                '''
             }
         }
 
         stage('Update Image Tag') {
             steps {
                 sh """
-                    yq e -i '.spec.template.spec.containers[0].image = "${DOCKER_IMAGE}:${params.IMAGE_TAG}"' deployment.yaml
+                yq e -i '.spec.template.spec.containers[0].image = "${DOCKER_IMAGE}:${params.IMAGE_TAG}"' deployment.yaml
                 """
             }
         }
 
-        stage('Commit and Push') {
+        stage('Verify Updated Deployment') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-                    sh """
-                        git config user.email "jenkins-cd@travel-buddy.com"
-                        git config user.name "jenkins-cd"
-                        git add deployment.yaml
-                        git commit -m "Deploy image ${DOCKER_IMAGE}:${params.IMAGE_TAG}" || echo "No changes to commit"
-                        git push https://\$GIT_USER:\$GIT_TOKEN@github.com/AmarKarande/travel-buddy-gitops.git HEAD:main
-                    """
-                }
+                sh '''
+                echo "Updated deployment.yaml"
+                cat deployment.yaml
+                '''
             }
         }
+
+        stage('Commit Changes') {
+            steps {
+
+                sh """
+                git config --global user.email "jenkins@travelbuddy.com"
+                git config --global user.name "Jenkins CD"
+
+                git add deployment.yaml
+
+                if git diff --cached --quiet; then
+                    echo "No changes detected."
+                else
+                    git commit -m "Deploy image ${DOCKER_IMAGE}:${params.IMAGE_TAG}"
+                fi
+                """
+
+            }
+        }
+
+        stage('Push Changes') {
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'github-creds',
+                        usernameVariable: 'GIT_USER',
+                        passwordVariable: 'GITHUB_TOKEN'
+                    )
+                ]) {
+
+                    sh """
+                    git push https://${GIT_USER}:${GITHUB_TOKEN}@github.com/AmarKarande/travel-buddy-gitops.git HEAD:main
+                    """
+
+                }
+
+            }
+        }
+
+        stage('Deployment Completed') {
+            steps {
+                echo "GitOps repository updated successfully."
+                echo "Argo CD will automatically sync the new deployment."
+            }
+        }
+
     }
 
     post {
-        failure {
-            echo 'CD Pipeline failed — check the failing stage above.'
-        }
+
         success {
-            echo "Successfully updated deployment.yaml to image tag: ${params.IMAGE_TAG}"
+
+            echo "======================================"
+            echo "CD Pipeline Completed Successfully"
+            echo "Image : ${DOCKER_IMAGE}:${params.IMAGE_TAG}"
+            echo "======================================"
+
         }
+
+        failure {
+
+            echo "======================================"
+            echo "CD Pipeline Failed"
+            echo "======================================"
+
+        }
+
+        always {
+            cleanWs()
+        }
+
     }
 }
