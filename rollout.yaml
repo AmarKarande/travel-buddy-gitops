@@ -1,55 +1,39 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
-
 metadata:
   name: travel-buddy
   labels:
     app: travel-buddy
-
 spec:
   replicas: 2
-
   revisionHistoryLimit: 3
-
   selector:
     matchLabels:
       app: travel-buddy
-
   template:
     metadata:
       labels:
         app: travel-buddy
-
     spec:
       containers:
-      - name: travel-buddy
-        image: amarskarande/travel-buddy:latest
-
-        ports:
-        - containerPort: 80
-
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-
-          limits:
-            cpu: "500m"
-            memory: "256Mi"
-
+        - name: travel-buddy
+          image: amarskarande/travel-buddy:14
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
   strategy:
     canary:
-
       steps:
-
-      - setWeight: 20
-
-      - pause:
-          duration: 30s
-
-      - setWeight: 50
-
-      - pause:
-          duration: 30s
-
-      - setWeight: 100
+        - setWeight: 20
+        - pause:
+            duration: 30s
+        - setWeight: 50
+        - pause:
+            duration: 30s
+        - setWeight: 100
