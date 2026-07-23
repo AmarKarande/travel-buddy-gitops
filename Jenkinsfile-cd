@@ -26,11 +26,11 @@ pipeline {
             }
         }
 
-        stage('Verify Current Deployment') {
+        stage('Verify Current Rollout') {
             steps {
                 sh '''
-                echo "Current deployment.yaml"
-                cat deployment.yaml
+                echo "Current rollout.yaml"
+                cat rollout.yaml
                 '''
             }
         }
@@ -38,28 +38,27 @@ pipeline {
         stage('Update Image Tag') {
             steps {
                 sh """
-                yq e -i '.spec.template.spec.containers[0].image = "${DOCKER_IMAGE}:${params.IMAGE_TAG}"' deployment.yaml
+                yq e -i '.spec.template.spec.containers[0].image = "${DOCKER_IMAGE}:${params.IMAGE_TAG}"' rollout.yaml
                 """
             }
         }
 
-        stage('Verify Updated Deployment') {
+        stage('Verify Updated Rollout') {
             steps {
                 sh '''
-                echo "Updated deployment.yaml"
-                cat deployment.yaml
+                echo "Updated rollout.yaml"
+                cat rollout.yaml
                 '''
             }
         }
 
         stage('Commit Changes') {
             steps {
-
                 sh """
                 git config --global user.email "jenkins@travelbuddy.com"
                 git config --global user.name "Jenkins CD"
 
-                git add deployment.yaml
+                git add rollout.yaml
 
                 if git diff --cached --quiet; then
                     echo "No changes detected."
@@ -67,13 +66,11 @@ pipeline {
                     git commit -m "Deploy image ${DOCKER_IMAGE}:${params.IMAGE_TAG}"
                 fi
                 """
-
             }
         }
 
         stage('Push Changes') {
             steps {
-
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'github-creds',
@@ -81,20 +78,17 @@ pipeline {
                         passwordVariable: 'GITHUB_TOKEN'
                     )
                 ]) {
-
-                    sh """
-                    git push https://${GIT_USER}:${GITHUB_TOKEN}@github.com/AmarKarande/travel-buddy-gitops.git HEAD:main
-                    """
-
+                    sh '''
+                    git push https://$GIT_USER:$GITHUB_TOKEN@github.com/AmarKarande/travel-buddy-gitops.git HEAD:main
+                    '''
                 }
-
             }
         }
 
         stage('Deployment Completed') {
             steps {
                 echo "GitOps repository updated successfully."
-                echo "Argo CD will automatically sync the new deployment."
+                echo "Argo CD will automatically sync the Rollout."
             }
         }
 
@@ -103,25 +97,20 @@ pipeline {
     post {
 
         success {
-
             echo "======================================"
             echo "CD Pipeline Completed Successfully"
             echo "Image : ${DOCKER_IMAGE}:${params.IMAGE_TAG}"
             echo "======================================"
-
         }
 
         failure {
-
             echo "======================================"
             echo "CD Pipeline Failed"
             echo "======================================"
-
         }
 
         always {
             cleanWs()
         }
-
     }
 }
