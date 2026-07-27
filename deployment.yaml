@@ -1,49 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
-
 metadata:
   name: travel-buddy
   labels:
     app: travel-buddy
-
 spec:
   replicas: 2
   revisionHistoryLimit: 3
-
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
-
   selector:
     matchLabels:
       app: travel-buddy
-
   template:
     metadata:
       labels:
         app: travel-buddy
-
     spec:
       containers:
         - name: travel-buddy
-          image: amarskarande/travel-buddy:v1.0.0
-
+          image: amarskarande/travel-buddy:15
           ports:
             - name: http
               containerPort: 80
               protocol: TCP
-
           resources:
             requests:
               cpu: "100m"
               memory: "128Mi"
-
             limits:
               cpu: "500m"
               memory: "256Mi"
-
           readinessProbe:
             httpGet:
               path: /
@@ -52,7 +42,6 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
-
           livenessProbe:
             httpGet:
               path: /
