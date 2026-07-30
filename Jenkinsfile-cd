@@ -4,7 +4,7 @@ pipeline {
     parameters {
         string(
             name: 'IMAGE_TAG',
-            defaultValue: 'v1.0.0',
+            defaultValue: '',
             description: 'Docker image tag from CI pipeline'
         )
     }
@@ -32,6 +32,21 @@ pipeline {
                     echo "Current deployment.yaml"
                     cat deployment.yaml
                 '''
+            }
+        }
+
+        stage('Validate Image Tag') {
+            steps {
+                script {
+                    if (!params.IMAGE_TAG?.trim()) {
+                        error """
+IMAGE_TAG parameter is empty.
+
+This job should be triggered automatically by the CI pipeline.
+If you are running this job manually, provide a valid Docker image tag.
+"""
+                    }
+                }
             }
         }
 
@@ -91,9 +106,12 @@ pipeline {
 
         stage('Deployment Completed') {
             steps {
+                echo "========================================="
                 echo "GitOps repository updated successfully."
-                echo "Argo CD will automatically sync the Deployment."
-                echo "Kubernetes will perform the RollingUpdate."
+                echo "Argo CD will automatically sync."
+                echo "Kubernetes RollingUpdate started."
+                echo "Image: ${DOCKER_IMAGE}:${params.IMAGE_TAG}"
+                echo "========================================="
             }
         }
     }
@@ -101,16 +119,16 @@ pipeline {
     post {
 
         success {
-            echo "======================================"
+            echo "========================================="
             echo "CD Pipeline Completed Successfully"
             echo "Image: ${DOCKER_IMAGE}:${params.IMAGE_TAG}"
-            echo "======================================"
+            echo "========================================="
         }
 
         failure {
-            echo "======================================"
+            echo "========================================="
             echo "CD Pipeline Failed"
-            echo "======================================"
+            echo "========================================="
         }
 
         always {
