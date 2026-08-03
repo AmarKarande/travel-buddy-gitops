@@ -1,0 +1,11 @@
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: TargetGroupBinding
+metadata:
+  name: travel-buddy-tgb
+  namespace: default
+spec:
+  serviceRef:
+    name: travel-buddy-service
+    port: 80
+  targetGroupARN: arn:aws:elasticloadbalancing:us-east-1:813246817047:targetgroup/travelbuddy-tg/35ab5573f588808e
+  targetType: ip
