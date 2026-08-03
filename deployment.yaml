@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: travel-buddy
-          image: amarskarande/travel-buddy:19
+          image: amarskarande/travel-buddy:20
           ports:
             - name: http
               containerPort: 80
