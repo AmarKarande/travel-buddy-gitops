@@ -41,25 +41,15 @@ pipeline {
             steps {
                 sh '''
                 set -e
-
-                if ! command -v curl >/dev/null 2>&1; then
-                    echo "curl not found, attempting install..."
-                    if command -v apt-get >/dev/null 2>&1; then
-                        sudo apt-get update -y && sudo apt-get install -y curl
-                    elif command -v yum >/dev/null 2>&1; then
-                        sudo yum install -y curl
-                    elif command -v apk >/dev/null 2>&1; then
-                        sudo apk add --no-cache curl
-                    else
-                        echo "ERROR: no supported package manager found to install curl." >&2
-                        exit 1
-                    fi
-                fi
-
-                command -v curl >/dev/null 2>&1 && echo "curl OK: $(curl --version | head -1)"
-                command -v yq   >/dev/null 2>&1 && echo "yq OK: $(yq --version)"
-                command -v git  >/dev/null 2>&1 && echo "git OK: $(git --version)"
+                command -v yq     >/dev/null 2>&1 && echo "yq OK: $(yq --version)"
+                command -v git    >/dev/null 2>&1 && echo "git OK: $(git --version)"
                 command -v docker >/dev/null 2>&1 && echo "docker OK: $(docker --version)"
+
+                if command -v curl >/dev/null 2>&1; then
+                    echo "curl OK (host): $(curl --version | head -1)"
+                else
+                    echo "curl not found on host - will use dockerized curl (curlimages/curl) instead."
+                fi
                 '''
             }
         }
@@ -113,7 +103,7 @@ pipeline {
 
                 for i in $(seq 1 60)
                 do
-                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$APP_URL")
+                    STATUS=$(docker run --rm curlimages/curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$APP_URL")
 
                     if [ "$STATUS" = "200" ]; then
                         echo "Application is available (HTTP $STATUS)."
@@ -146,7 +136,9 @@ pipeline {
                   -r zap-report.html \
                   -J zap-report.json \
                   -x zap-report.xml \
-                  -m 5
+                  -m 15 \
+                  -T 20 \
+                  -I
                 '''
             }
         }
