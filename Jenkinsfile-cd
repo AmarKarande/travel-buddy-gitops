@@ -154,33 +154,68 @@ pipeline {
 
     post {
 
-        success {
-            echo "CD Pipeline Completed Successfully"
-        }
+    success {
+        echo "CD Pipeline Completed Successfully"
 
-        failure {
-            echo "CD Pipeline Failed"
-        }
+        emailext(
+            to: 'amar.skarande@gmail.com',
+            subject: "✅ CD SUCCESS - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            mimeType: 'text/html',
+            body: """
+            <h2 style="color:green;">Deployment Successful</h2>
 
-        always {
+            <b>Project:</b> Travel Buddy <br>
+            <b>Job:</b> ${env.JOB_NAME} <br>
+            <b>Build Number:</b> ${env.BUILD_NUMBER} <br>
+            <b>Image:</b> ${DOCKER_IMAGE}:${params.IMAGE_TAG} <br>
+            <b>Application URL:</b> <a href="${APP_URL}">${APP_URL}</a> <br><br>
 
-            archiveArtifacts artifacts: '''
+            <b>Jenkins Build:</b><br>
+            <a href="${env.BUILD_URL}">${env.BUILD_URL}</a>
+            """
+        )
+    }
+
+    failure {
+        echo "CD Pipeline Failed"
+
+        emailext(
+            to: 'amar.skarande@gmail.com',
+            subject: "🚨 CD FAILED - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            mimeType: 'text/html',
+            body: """
+            <h2 style="color:red;">Deployment Failed</h2>
+
+            <b>Project:</b> Travel Buddy <br>
+            <b>Job:</b> ${env.JOB_NAME} <br>
+            <b>Build Number:</b> ${env.BUILD_NUMBER} <br>
+            <b>Image:</b> ${DOCKER_IMAGE}:${params.IMAGE_TAG} <br><br>
+
+            <b>Check Jenkins Console Log:</b><br>
+            <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a>
+            """
+        )
+    }
+
+    always {
+
+        archiveArtifacts artifacts: '''
 deployment.yaml,
 zap-report.html,
 zap-report.json,
 zap-report.xml
 ''', allowEmptyArchive: true
 
-            publishHTML(target: [
-                allowMissing: true,
-                alwaysLinkToLastBuild: true,
-                keepAll: true,
-                reportDir: '.',
-                reportFiles: 'zap-report.html',
-                reportName: 'OWASP ZAP Report'
-            ])
+        publishHTML(target: [
+            allowMissing: true,
+            alwaysLinkToLastBuild: true,
+            keepAll: true,
+            reportDir: '.',
+            reportFiles: 'zap-report.html',
+            reportName: 'OWASP ZAP Report'
+        ])
 
-            cleanWs()
-        }
+        cleanWs()
     }
+}
 }
