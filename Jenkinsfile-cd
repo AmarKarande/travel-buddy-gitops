@@ -37,6 +37,33 @@ pipeline {
             }
         }
 
+        stage('Ensure Required Tools') {
+            steps {
+                sh '''
+                set -e
+
+                if ! command -v curl >/dev/null 2>&1; then
+                    echo "curl not found, attempting install..."
+                    if command -v apt-get >/dev/null 2>&1; then
+                        sudo apt-get update -y && sudo apt-get install -y curl
+                    elif command -v yum >/dev/null 2>&1; then
+                        sudo yum install -y curl
+                    elif command -v apk >/dev/null 2>&1; then
+                        sudo apk add --no-cache curl
+                    else
+                        echo "ERROR: no supported package manager found to install curl." >&2
+                        exit 1
+                    fi
+                fi
+
+                command -v curl >/dev/null 2>&1 && echo "curl OK: $(curl --version | head -1)"
+                command -v yq   >/dev/null 2>&1 && echo "yq OK: $(yq --version)"
+                command -v git  >/dev/null 2>&1 && echo "git OK: $(git --version)"
+                command -v docker >/dev/null 2>&1 && echo "docker OK: $(docker --version)"
+                '''
+            }
+        }
+
         stage('Update deployment.yaml') {
             steps {
                 sh """
@@ -81,22 +108,23 @@ pipeline {
         stage('Wait for Application') {
             steps {
                 sh '''
+                set +e
                 echo "Waiting for application..."
 
                 for i in $(seq 1 60)
                 do
-                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL")
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$APP_URL")
 
                     if [ "$STATUS" = "200" ]; then
-                        echo "Application is available."
+                        echo "Application is available (HTTP $STATUS)."
                         exit 0
                     fi
 
-                    echo "Attempt $i/60 - waiting 10 seconds..."
+                    echo "Attempt $i/60 - got HTTP '$STATUS' - waiting 10 seconds..."
                     sleep 10
                 done
 
-                echo "Application failed to become available."
+                echo "Application failed to become available after 60 attempts."
                 exit 1
                 '''
             }
