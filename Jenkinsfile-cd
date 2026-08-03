@@ -128,6 +128,8 @@ pipeline {
                 docker image inspect ghcr.io/zaproxy/zaproxy:stable >/dev/null 2>&1 || \
                 docker pull ghcr.io/zaproxy/zaproxy:stable
 
+                chmod 777 "$WORKSPACE"
+
                 docker run --rm \
                   -v "$WORKSPACE:/zap/wrk:rw" \
                   ghcr.io/zaproxy/zaproxy:stable \
