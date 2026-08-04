@@ -159,52 +159,118 @@ pipeline {
 
         emailext(
             to: 'amar.skarande@gmail.com',
-            subject: "✅ CD SUCCESS - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            subject: "✅ TravelBuddy CD Success | Build #${env.BUILD_NUMBER}",
             mimeType: 'text/html',
+            attachmentsPattern: 'zap-report.html,zap-report.json,zap-report.xml',
+            attachLog: false,
+            compressLog: false,
             body: """
-            <h2 style="color:green;">Deployment Successful</h2>
+            <html>
+            <body style="font-family:Arial,sans-serif;">
 
-            <b>Project:</b> Travel Buddy <br>
-            <b>Job:</b> ${env.JOB_NAME} <br>
-            <b>Build Number:</b> ${env.BUILD_NUMBER} <br>
-            <b>Image:</b> ${DOCKER_IMAGE}:${params.IMAGE_TAG} <br>
-            <b>Application URL:</b> <a href="${APP_URL}">${APP_URL}</a> <br><br>
+            <h2 style="color:#28a745;">TravelBuddy Deployment Successful</h2>
+
+            <table border="1" cellpadding="8" cellspacing="0">
+                <tr>
+                    <td><b>Project</b></td>
+                    <td>TravelBuddy</td>
+                </tr>
+                <tr>
+                    <td><b>Build Number</b></td>
+                    <td>#${env.BUILD_NUMBER}</td>
+                </tr>
+                <tr>
+                    <td><b>Job Name</b></td>
+                    <td>${env.JOB_NAME}</td>
+                </tr>
+                <tr>
+                    <td><b>Docker Image</b></td>
+                    <td>${DOCKER_IMAGE}:${params.IMAGE_TAG}</td>
+                </tr>
+                <tr>
+                    <td><b>Application URL</b></td>
+                    <td>
+                        <a href="${APP_URL}">
+                            ${APP_URL}
+                        </a>
+                    </td>
+                </tr>
+            </table>
+
+            <br>
+
+            <h3>Security Scan</h3>
+
+            <ul>
+                <li>Deployment Completed Successfully</li>
+                <li>OWASP ZAP Baseline Scan Completed</li>
+                <li>HTML Report Attached</li>
+                <li>JSON Report Attached</li>
+                <li>XML Report Attached</li>
+            </ul>
+
+            <br>
 
             <b>Jenkins Build:</b><br>
-            <a href="${env.BUILD_URL}">${env.BUILD_URL}</a>
+
+            <a href="${env.BUILD_URL}">
+                ${env.BUILD_URL}
+            </a>
+
+            <br><br>
+
+            Regards,<br>
+            Jenkins DevSecOps Pipeline
+
+            </body>
+            </html>
             """
         )
     }
 
     failure {
+
         echo "CD Pipeline Failed"
 
         emailext(
             to: 'amar.skarande@gmail.com',
-            subject: "🚨 CD FAILED - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            subject: "❌ TravelBuddy CD Failed | Build #${env.BUILD_NUMBER}",
             mimeType: 'text/html',
+            attachLog: true,
+            compressLog: true,
             body: """
+            <html>
+            <body>
+
             <h2 style="color:red;">Deployment Failed</h2>
 
-            <b>Project:</b> Travel Buddy <br>
-            <b>Job:</b> ${env.JOB_NAME} <br>
-            <b>Build Number:</b> ${env.BUILD_NUMBER} <br>
-            <b>Image:</b> ${DOCKER_IMAGE}:${params.IMAGE_TAG} <br><br>
+            <p><b>Project:</b> TravelBuddy</p>
 
-            <b>Check Jenkins Console Log:</b><br>
-            <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a>
+            <p><b>Build Number:</b> #${env.BUILD_NUMBER}</p>
+
+            <p><b>Job:</b> ${env.JOB_NAME}</p>
+
+            <p>
+            Console Log:
+            <br>
+            <a href="${env.BUILD_URL}console">
+            ${env.BUILD_URL}console
+            </a>
+            </p>
+
+            </body>
+            </html>
             """
         )
     }
 
     always {
 
-        archiveArtifacts artifacts: '''
-deployment.yaml,
-zap-report.html,
-zap-report.json,
-zap-report.xml
-''', allowEmptyArchive: true
+        archiveArtifacts(
+            artifacts: 'deployment.yaml,zap-report.html,zap-report.json,zap-report.xml',
+            fingerprint: true,
+            allowEmptyArchive: true
+        )
 
         publishHTML(target: [
             allowMissing: true,
@@ -212,10 +278,9 @@ zap-report.xml
             keepAll: true,
             reportDir: '.',
             reportFiles: 'zap-report.html',
-            reportName: 'OWASP ZAP Report'
+            reportName: 'OWASP ZAP Security Report'
         ])
 
         cleanWs()
     }
-}
 }

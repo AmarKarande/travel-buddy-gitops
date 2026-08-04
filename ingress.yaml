@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: travelbuddy-ingress
-  namespace: default
+  name: argocd-ingress
+  namespace: argocd
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
@@ -12,10 +12,10 @@ spec:
   rules:
   - http:
       paths:
-      - path: /
+      - path: /argocd
         pathType: Prefix
         backend:
           service:
-            name: travel-buddy-service
+            name: argocd-server
             port:
               number: 80
